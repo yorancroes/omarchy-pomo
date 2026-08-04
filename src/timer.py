@@ -22,9 +22,7 @@ class Timer:
         self.phase: Phase = Phase.WORK
 
         self._end_time: float | None = None  # timestamp, only meaningful while RUNNING
-        self._remaining: int = (
-            self.pomo_duration
-        )  # snapshot, only meaningful while NOT running
+        self._remaining: int = self.pomo_duration  # snapshot
 
     def start(self):
         if self.status == TimerStatus.NOT_STARTED:
@@ -54,13 +52,17 @@ class Timer:
         return False
 
     def advance_phase(self):
-        if self.check_phase_complete() == True:
-            if self.phase == Phase.WORK:
-                self.phase == Phase.BREAK
-                self._remaining = self.break_duration
-                self.status = TimerStatus.NOT_STARTED
+        if self.phase == Phase.WORK:
+            self.phase = Phase.BREAK
+            self._remaining = self.break_duration
+            self.status = TimerStatus.NOT_STARTED
 
-            if self.phase == Phase.BREAK:
-                self.phase == Phase.WORK
-                self._remaining = self.pomo_duration
-                self.status = TimerStatus.NOT_STARTED
+        if self.phase == Phase.BREAK:
+            self.phase = Phase.WORK
+            self._remaining = self.pomo_duration
+            self.status = TimerStatus.NOT_STARTED
+
+    def print(self):
+        print(
+            f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
+        )
