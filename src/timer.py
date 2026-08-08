@@ -42,6 +42,7 @@ class Timer:
     @property
     def remaining(self) -> int:
         if self.status == TimerStatus.RUNNING:
+            # 0 to make sure the time doesn't go negative
             return max(0, round(self._end_time - time.time()))
         return self._remaining
 
@@ -52,15 +53,16 @@ class Timer:
         return False
 
     def advance_phase(self):
-        if self.phase == Phase.WORK:
-            self.phase = Phase.BREAK
-            self._remaining = self.break_duration
-            self.status = TimerStatus.NOT_STARTED
+        if self.check_phase_complete():
+            if self.phase == Phase.WORK:
+                self.phase = Phase.BREAK
+                self._remaining = self.break_duration
+                self.status = TimerStatus.NOT_STARTED
 
-        if self.phase == Phase.BREAK:
-            self.phase = Phase.WORK
-            self._remaining = self.pomo_duration
-            self.status = TimerStatus.NOT_STARTED
+            elif self.phase == Phase.BREAK:
+                self.phase = Phase.WORK
+                self._remaining = self.pomo_duration
+                self.status = TimerStatus.NOT_STARTED
 
     def print(self):
         print(
