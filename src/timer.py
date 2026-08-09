@@ -24,20 +24,29 @@ class Timer:
         self._end_time: float | None = None  # timestamp, only meaningful while RUNNING
         self._remaining: int = self.pomo_duration  # snapshot
 
-    def start(self):
+    def start(self) -> bool:
         if self.status == TimerStatus.NOT_STARTED:
             self._end_time = time.time() + self._remaining
             self.status = TimerStatus.RUNNING
+            return True
 
-    def pause(self):
+        return False
+
+    def pause(self) -> bool:
         if self.status == TimerStatus.RUNNING:
             self._remaining = round(self._end_time - time.time())
             self.status = TimerStatus.PAUSED
+            return True
 
-    def resume(self):
+        return False
+
+    def resume(self) -> bool:
         if self.status == TimerStatus.PAUSED:
             self._end_time = time.time() + self._remaining
             self.status = TimerStatus.RUNNING
+            return True
+
+        return False
 
     @property
     def remaining(self) -> int:
@@ -65,6 +74,4 @@ class Timer:
                 self.status = TimerStatus.NOT_STARTED
 
     def print(self):
-        print(
-            f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
-        )
+        print(f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}")
