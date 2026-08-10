@@ -1,5 +1,5 @@
 import os
-import socket
+import asyncio
 from timer import Timer
 
 
@@ -7,25 +7,17 @@ class PomodoroDeamon:
     def __init__(self):
         self.path = "/tmp/pomodoro.sock"
         self.timer = Timer()
-        self.setup()
-        self.run()
-
-    def setup(self):
-        self.sock: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
         if os.path.exists(self.path):
             os.remove(self.path)
 
-        self.sock.bind(self.path)
-        self.sock.listen()
+    async def setup(self):
+        self.server = await asyncio.start_unix_server(self.handle_connection, path=self.path)
 
-    def run(self):
-        while True:
-            conn, addr = self.sock.accept()
-            self.handle_connection(conn)
+    async def serve(self):
+        await self.server.serve_forever()
 
-    def handle_connection(self, conn: socket.socket):
-        message = conn.recv(1024).decode()
+    async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        message = (await reader.readline()).decode().strip()
 
         functions = {
             "START": self.start_timer,
@@ -35,30 +27,49 @@ class PomodoroDeamon:
         }
 
         func = functions.get(message)
+
         if func is None:
-            return self.send_error(conn)
-        return func(conn)
+            return await self.send_error(writer)
+        return await func(writer)
 
-    def start_timer(self, conn: socket.socket):
+    async def start_timer(self, writer):
         if self.timer.start():
-            self.send_message(conn)
+            await self.send_message(writer)
         else:
-            self.send_error(conn, error_msg="timer already started")
+            await self.send_error(writer, msg="ERROR: timer unable to start")
 
-    def pause_timer(self, conn: socket.socket):
+    async def pause_timer(self, writer):
         if self.timer.pause():
-            self.send_message(conn)
+            await self.send_message(writer)
         else:
-            self.send_error(conn, error_msg="timer isn't running")
+            await self.send_error(writer, msg="ERROR: timer unable to pause")
 
-    def resume_timer(self, conn: socket.socket):
+    async def resume_timer(self, writer):
         if self.timer.resume():
-            self.send_message(conn)
+            await self.send_message(writer)
         else:
-            self.send_error(conn, error_msg="timer isn't paused")
+            await self.send_error(writer, msg="ERROR: timer unable to resume")
 
-    def send_message(self, conn: socket.socket):
-        conn.sendall("OK".encode())
+    async def send_message(self, writer: asyncio.StreamWriter, msg="ok"):
+        writer.write(msg.encode())
+        await writer.drain()
+        await self.close_writer(writer)
 
-    def send_error(self, conn: socket.socket, error_msg: str = "ERROR unknown operation"):
-        conn.sendall(error_msg.encode())
+    async def send_error(self, writer, msg="ERROR: Unkown operator"):
+        writer.write(msg.encode())
+        await writer.drain()
+        await self.close_writer(writer)
+
+    async def close_writer(self, writer: asyncio.StreamWriter):
+        writer.close()
+        await writer.wait_closed()
+
+
+async def main():
+    deamon = PomodoroDeamon()
+    await deamon.setup()
+    await deamon.serve()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
