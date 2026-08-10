@@ -1,4 +1,5 @@
 import time
+import json
 from enum import Enum, auto
 
 
@@ -76,5 +77,14 @@ class Timer:
     def __str__(self):
         return f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
 
-    def repr(self):
+    def __repr__(self):
         return f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
+
+    def dump(self) -> str:
+        return json.dumps(
+            {
+                "status": self.status.name,
+                "phase": self.phase.name,
+                "remaining": self.remaining,
+            }
+        )

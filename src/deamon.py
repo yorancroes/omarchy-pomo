@@ -6,6 +6,7 @@ from timer import Timer
 class PomodoroDeamon:
     def __init__(self):
         self.path = "/tmp/pomodoro.sock"
+        self.json_path = "/tmp/pomodoro_state.json"
         self.timer = Timer()
         if os.path.exists(self.path):
             os.remove(self.path)
@@ -17,6 +18,12 @@ class PomodoroDeamon:
         async with asyncio.TaskGroup() as tg:
             task1 = tg.create_task(self.server.serve_forever())
             task2 = tg.create_task(self.tick_loop())
+
+    async def tick_loop(self):
+        while True:
+            self.timer.advance_phase()
+            self.write_json()
+            await asyncio.sleep(1)
 
     async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         message = (await reader.readline()).decode().strip()
@@ -66,10 +73,14 @@ class PomodoroDeamon:
         writer.close()
         await writer.wait_closed()
 
-    async def tick_loop(self):
-        while True:
-            self.timer.advance_phase()
-            await asyncio.sleep(1)
+    def write_json(self):
+        txt = self.timer.dump()
+
+        # tmp_path so client can't read half written json
+        tmp_path = self.json_path + ".tmp"
+        with open(tmp_path, "w") as f:
+            f.write(txt)
+        os.replace(tmp_path, self.json_path)
 
 
 async def main():
