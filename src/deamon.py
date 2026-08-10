@@ -14,7 +14,9 @@ class PomodoroDeamon:
         self.server = await asyncio.start_unix_server(self.handle_connection, path=self.path)
 
     async def serve(self):
-        await self.server.serve_forever()
+        async with asyncio.TaskGroup() as tg:
+            task1 = tg.create_task(self.server.serve_forever())
+            task2 = tg.create_task(self.tick_loop())
 
     async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         message = (await reader.readline()).decode().strip()
@@ -63,6 +65,11 @@ class PomodoroDeamon:
     async def close_writer(self, writer: asyncio.StreamWriter):
         writer.close()
         await writer.wait_closed()
+
+    async def tick_loop(self):
+        while True:
+            self.timer.advance_phase()
+            await asyncio.sleep(1)
 
 
 async def main():

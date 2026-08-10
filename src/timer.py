@@ -14,7 +14,7 @@ class Phase(Enum):
 
 
 class Timer:
-    def __init__(self, pomo=1800, break_time=300) -> None:
+    def __init__(self, pomo=8, break_time=3) -> None:
         self.pomo_duration: int = pomo
         self.break_duration: int = break_time
 
@@ -73,5 +73,8 @@ class Timer:
                 self._remaining = self.pomo_duration
                 self.status = TimerStatus.NOT_STARTED
 
-    def print(self):
-        print(f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}")
+    def __str__(self):
+        return f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
+
+    def repr(self):
+        return f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"

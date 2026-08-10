@@ -5,7 +5,7 @@ path = "/tmp/pomodoro.sock"
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect(path)
 
-message = "PAUSE\n"
+message = "START\n"
 
 s.sendall(message.encode())
 data = s.recv(1024)
