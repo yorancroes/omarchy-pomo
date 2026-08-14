@@ -1,12 +1,6 @@
 import sys
-import socket
 
-
-def create_socket():
-    path = "/tmp/pomodoro.sock"
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(path)
-    return s
+from tui.socket import send_command
 
 
 def main():
@@ -17,33 +11,7 @@ def main():
 
     command = sys.argv[1]
 
-    availeble_commands = {
-        "start": "START\n",
-        "pause": "PAUSE\n",
-        "resume": "RESUME\n",
-    }
-
-    try:
-        s = create_socket()
-
-    except ConnectionRefusedError as e:
-        print(f"ERROR: failed to connect to socket: {e}")
-        return
-
-    except FileNotFoundError as e:
-        print(f"ERROR: socket file not found: {e}")
-        return
-
-    msg = availeble_commands.get(command)
-
-    if msg is not None:
-        s.sendall(msg.encode())
-    else:
-        print("ERROR: command not available try: start, pause, resume")
-        return
-
-    data = s.recv(1024)
-    print(data.decode())
+    print(send_command(command))
 
 
 if __name__ == "__main__":

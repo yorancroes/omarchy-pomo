@@ -31,7 +31,7 @@ class PomodoroDeamon:
         functions = {
             "START": self.start_timer,
             "PAUSE": self.pause_timer,
-            "RESUME": self.resume_timer,
+            "SKIP": self.skip_timer,
             "PING": self.send_message,
         }
 
@@ -53,11 +53,9 @@ class PomodoroDeamon:
         else:
             await self.send_error(writer, msg="ERROR: timer unable to pause")
 
-    async def resume_timer(self, writer):
-        if self.timer.resume():
-            await self.send_message(writer)
-        else:
-            await self.send_error(writer, msg="ERROR: timer unable to resume")
+    async def skip_timer(self, writer):
+        self.timer.skip_phase()
+        await self.send_message(writer)
 
     async def send_message(self, writer: asyncio.StreamWriter, msg="ok"):
         writer.write(msg.encode())

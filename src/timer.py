@@ -26,7 +26,7 @@ class Timer:
         self._remaining: int = self.pomo_duration  # snapshot
 
     def start(self) -> bool:
-        if self.status == TimerStatus.NOT_STARTED:
+        if self.status == TimerStatus.NOT_STARTED or self.status == TimerStatus.PAUSED:
             self._end_time = time.time() + self._remaining
             self.status = TimerStatus.RUNNING
             return True
@@ -37,14 +37,6 @@ class Timer:
         if self.status == TimerStatus.RUNNING:
             self._remaining = round(self._end_time - time.time())
             self.status = TimerStatus.PAUSED
-            return True
-
-        return False
-
-    def resume(self) -> bool:
-        if self.status == TimerStatus.PAUSED:
-            self._end_time = time.time() + self._remaining
-            self.status = TimerStatus.RUNNING
             return True
 
         return False
@@ -73,6 +65,17 @@ class Timer:
                 self.phase = Phase.WORK
                 self._remaining = self.pomo_duration
                 self.status = TimerStatus.NOT_STARTED
+
+    def skip_phase(self):
+        if self.phase == Phase.WORK:
+            self.phase = Phase.BREAK
+            self._remaining = self.break_duration
+            self.status = TimerStatus.NOT_STARTED
+
+        elif self.phase == Phase.BREAK:
+            self.phase = Phase.WORK
+            self._remaining = self.pomo_duration
+            self.status = TimerStatus.NOT_STARTED
 
     def __str__(self):
         return f"STATUS: {self.status} \nPHASE: {self.phase} \nTIME REMAINING: {self.remaining}"
