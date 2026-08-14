@@ -1,3 +1,20 @@
+[project]
+name = "omarchy-pomo"
+version = "0.1.0"
+description = "A Pomodoro timer daemon, Waybar module, and TUI for Omarchy desktops."
+requires-python = ">=3.12"
+dependencies = [
+    "textual",
+    "pyfiglet",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]
