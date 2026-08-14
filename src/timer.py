@@ -15,7 +15,7 @@ class Phase(Enum):
 
 
 class Timer:
-    def __init__(self, pomo=8, break_time=3) -> None:
+    def __init__(self, pomo=1800, break_time=300) -> None:
         self.pomo_duration: int = pomo
         self.break_duration: int = break_time
 
