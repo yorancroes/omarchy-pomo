@@ -1,7 +1,8 @@
 from textual import on
 from textual.app import App, ComposeResult
 from src.tui.widgets.timer import TimerWidget
-from textual.widgets import Collapsible, Footer, Input
+from textual.containers import Container
+from textual.widgets import Footer, Input
 
 import json
 from pathlib import Path
@@ -16,16 +17,10 @@ class PomodoroApp(App):
     status: str = ""
 
     CSS = """
-    Collapsible {
+    #menu-panel {
         dock: right;
         width: 40;
         height: 1fr;
-        align-horizontal: right;
-    }
-
-    Collapsible.-collapsed {
-        background: $background;
-        background-tint: $foreground 0%;
     }
     """
 
@@ -33,13 +28,13 @@ class PomodoroApp(App):
         ("q", "quit_app", "Quit app"),
         ("space", "start_stop_timer", "Start / Stop"),
         ("s", "skip_timer", "Skip phase"),
+        ("m", "toggle_menu", "Menu"),
+        ("escape", "close_menu", "Close menu"),
     ]
 
     def compose(self) -> ComposeResult:
         yield TimerWidget()
-        with Collapsible(
-            title="Change time",
-        ):
+        with Container(id="menu-panel"):
             yield CollapsibleMenu()
         yield Footer()
 
@@ -48,6 +43,9 @@ class PomodoroApp(App):
         if omarchy_theme is not None:
             self.register_theme(omarchy_theme)
             self.theme = "omarchy"
+
+        self.query_one("#menu-panel").display = False
+        self.call_after_refresh(self.set_focus, None)
 
         self.set_interval(0.5, self.poll_state)
 
@@ -76,6 +74,18 @@ class PomodoroApp(App):
 
     def action_skip_timer(self):
         self.run_worker(lambda: send_command("skip"), thread=True)
+
+    def action_toggle_menu(self):
+        menu = self.query_one("#menu-panel")
+        menu.display = not menu.display
+        if not menu.display:
+            self.set_focus(None)
+
+    def action_close_menu(self):
+        menu = self.query_one("#menu-panel")
+        if menu.display:
+            menu.display = False
+            self.set_focus(None)
 
     @on(Input.Submitted, "#pomodoro-input")
     def on_pomodoro_time_submitted(self, event: Input.Submitted):
