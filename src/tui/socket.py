@@ -29,7 +29,40 @@ def send_command(command: str):
     if msg is not None:
         s.sendall(msg.encode())
     else:
-        return "ERROR: command not available try: start, pause "
+        return "ERROR: command not available try: start, pause, change_break [time_in_seconds], change_pomo [time_in_seconds]"
+
+    data = s.recv(1024)
+    return data.decode()
+
+
+def send_time_command(command: str):
+    command_list = command.split()
+    print(command_list)
+
+    available_commands = {
+        "change_break": "CHANGE_BREAK",
+        "change_pomo": "CHANGE_POMO",
+    }
+
+    try:
+        s = create_socket()
+
+    except ConnectionRefusedError as e:
+        return f"ERROR: failed to connect to socket: {e}"
+
+    except FileNotFoundError as e:
+        return f"ERROR: socket file not found: {e}"
+
+    command = available_commands.get(command_list[0])
+
+    if command is None:
+        return "Error wrong command"
+    msg = command + " " + command_list[1] + "\n"
+
+    if msg is not None:
+        s.sendall(msg.encode())
+    else:
+        return "ERROR: command not available try: start, pause, change_break [time_in_seconds], change_pomo [time_in_seconds]"
 
     data = s.recv(1024)
     return data.decode()

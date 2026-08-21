@@ -89,19 +89,40 @@ RestartSec=2
 WantedBy=default.target
 "
 
-if [[ "$(cat "$SERVICE_FILE" 2>/dev/null || true)" == "${NEW_SERVICE_CONTENT%$'\n'}" ]]; then
-    echo "systemd: unit already up to date."
-    systemctl --user daemon-reload
-    systemctl --user enable pomodoro_timer.service
-    systemctl --user is-active --quiet pomodoro_timer.service || systemctl --user start pomodoro_timer.service
-else
+UNIT_CHANGED=0
+if [[ "$(cat "$SERVICE_FILE" 2>/dev/null || true)" != "${NEW_SERVICE_CONTENT%$'\n'}" ]]; then
+    UNIT_CHANGED=1
     backup_file "$SERVICE_FILE"
     printf '%s' "$NEW_SERVICE_CONTENT" > "$SERVICE_FILE"
-    systemctl --user daemon-reload
-    systemctl --user enable pomodoro_timer.service
-    systemctl --user restart pomodoro_timer.service
-    echo "systemd: unit installed/updated, daemon (re)started."
 fi
+
+# Restart the daemon whenever its source changed too, not just the unit file -
+# otherwise editing timer.py/daemon.py and rerunning install.sh silently
+# leaves the old code running.
+DAEMON_HASH_FILE="$SERVICE_DIR/.omarchy-pomo-daemon.sha256"
+NEW_DAEMON_HASH="$(cat "$INSTALL_DIR/src/daemon.py" "$INSTALL_DIR/src/timer.py" | sha256sum | cut -d' ' -f1)"
+OLD_DAEMON_HASH="$(cat "$DAEMON_HASH_FILE" 2>/dev/null || true)"
+DAEMON_SRC_CHANGED=0
+[[ "$NEW_DAEMON_HASH" != "$OLD_DAEMON_HASH" ]] && DAEMON_SRC_CHANGED=1
+
+systemctl --user daemon-reload
+systemctl --user enable pomodoro_timer.service
+
+if [[ "$UNIT_CHANGED" == "1" || "$DAEMON_SRC_CHANGED" == "1" ]]; then
+    systemctl --user restart pomodoro_timer.service
+    reason=""
+    [[ "$UNIT_CHANGED" == "1" ]] && reason+="unit file changed"
+    if [[ "$DAEMON_SRC_CHANGED" == "1" ]]; then
+        [[ -n "$reason" ]] && reason+=", "
+        reason+="daemon source changed"
+    fi
+    echo "systemd: daemon restarted ($reason)."
+else
+    systemctl --user is-active --quiet pomodoro_timer.service || systemctl --user start pomodoro_timer.service
+    echo "systemd: unit and daemon source unchanged, nothing to restart."
+fi
+
+printf '%s' "$NEW_DAEMON_HASH" > "$DAEMON_HASH_FILE"
 
 # ---------------------------------------------------------------------------
 # Waybar module merge (surgical text edit - JSONC has comments, never
@@ -200,6 +221,59 @@ else:
 PYEOF
 else
     echo "Waybar not detected, skipping Waybar integration."
+fi
+
+# ---------------------------------------------------------------------------
+# Waybar style merge - give the modules-center cluster a bit more breathing
+# room, since custom/pomodoro joining it makes the row feel cramped.
+# ---------------------------------------------------------------------------
+if [[ "$HAVE_WAYBAR" == "1" ]]; then
+    WAYBAR_STYLE="$HOME/.config/waybar/style.css"
+    if [[ -f "$WAYBAR_STYLE" ]]; then
+        python3 - "$WAYBAR_STYLE" <<'PYEOF'
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+
+style_path = sys.argv[1]
+path = Path(style_path)
+text = path.read_text()
+original = text
+
+marker = "/* omarchy-pomo: extra breathing room in the waybar center cluster (managed by install.sh) */"
+new_block = (
+    f"{marker}\n"
+    "#clock,\n"
+    "#custom-weather,\n"
+    "#custom-pomodoro,\n"
+    "#custom-update,\n"
+    "#custom-voxtype,\n"
+    "#custom-screenrecording-indicator,\n"
+    "#custom-idle-indicator,\n"
+    "#custom-notification-silencing-indicator {\n"
+    "  margin: 0 4.5px;\n"
+    "}"
+)
+
+managed_re = re.compile(re.escape(marker) + r"\n(?:[^\n]*\n){1,10}?\}")
+
+if managed_re.search(text):
+    text = managed_re.sub(new_block, text)
+else:
+    text = text.rstrip("\n") + "\n\n" + new_block + "\n"
+
+if text == original:
+    print("waybar: center-cluster spacing already up to date, no changes")
+else:
+    shutil.copy(style_path, f"{style_path}.bak.{int(time.time())}")
+    path.write_text(text)
+    print("waybar: center-cluster spacing installed/updated")
+PYEOF
+    else
+        echo "waybar: style.css not found at $WAYBAR_STYLE, skipping spacing tweak"
+    fi
 fi
 
 # ---------------------------------------------------------------------------

@@ -1,10 +1,5 @@
-import json
-from pathlib import Path
-
 import pyfiglet
 from textual.widgets import Static
-
-STATE_FILE = Path("/tmp/pomodoro_state.json")
 
 _PHASE_LABELS = {
     "WORK": "WORK",
@@ -22,21 +17,8 @@ class TimerWidget(Static):
     }
     """
 
-    def on_mount(self) -> None:
-        self.set_interval(0.5, self.refresh_state)
-        self.refresh_state()
-
-    def refresh_state(self) -> None:
-        remaining, phase = self._read_state()
+    def refresh_state(self, remaining: int, phase: str) -> None:
         self.update(self.render_state(remaining, phase))
-
-    def _read_state(self) -> tuple[int, str]:
-        try:
-            with STATE_FILE.open() as f:
-                state = json.load(f)
-            return (int(state["remaining"]), str(state["phase"]))
-        except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):
-            return (0, "ERROR")
 
     @staticmethod
     def _figlet_block(text: str, font: str, gap: int = 2) -> list[str]:
@@ -59,7 +41,7 @@ class TimerWidget(Static):
         return [row for row in rows if row.strip()]
 
     def render_state(self, remaining: int, phase: str, gap: int = 2) -> str:
-        """Render remaining seconds (0-3599) plus a phase label as a bordered,
+        """Render remaining seconds (0-3599) plus a phase label as a
         figlet-style ASCII display: label on top, MM:SS clock below."""
         remaining = max(0, min(remaining, 59 * 60 + 59))
         minutes, seconds = divmod(remaining, 60)
@@ -76,11 +58,4 @@ class TimerWidget(Static):
         rows.append("")  # blank separator between label and time
         rows.extend(r.center(content_width) for r in time_rows)
 
-        width = max(len(r) for r in rows)
-        rows = [r.ljust(width) for r in rows]
-
-        top = "┌" + "─" * (width + 2) + "┐"
-        bottom = "└" + "─" * (width + 2) + "┘"
-        body = [f"│ {r} │" for r in rows]
-
-        return "\n".join([top] + body + [bottom])
+        return "\n".join(rows)

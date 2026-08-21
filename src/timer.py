@@ -41,6 +41,24 @@ class Timer:
 
         return False
 
+    def set_pomodoro_time(self, duration: int):
+        delta = duration - self.pomo_duration
+        self.pomo_duration = duration
+        if self.phase == Phase.WORK:
+            self._apply_delta(delta)
+
+    def set_break_time(self, duration: int):
+        delta = duration - self.break_duration
+        self.break_duration = duration
+        if self.phase == Phase.BREAK:
+            self._apply_delta(delta)
+
+    def _apply_delta(self, delta: int):
+        if self.status == TimerStatus.RUNNING:
+            self._end_time += delta
+        else:
+            self._remaining = max(0, self._remaining + delta)
+
     @property
     def remaining(self) -> int:
         if self.status == TimerStatus.RUNNING:

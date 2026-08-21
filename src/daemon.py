@@ -26,20 +26,26 @@ class PomodoroDeamon:
             await asyncio.sleep(1)
 
     async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        message = (await reader.readline()).decode().strip()
+        message = (await reader.readline()).decode().strip().split()
+        print(message)
 
         functions = {
             "START": self.start_timer,
             "PAUSE": self.pause_timer,
             "SKIP": self.skip_timer,
             "PING": self.send_message,
+            "CHANGE_POMO": self.change_pomo_timer,
+            "CHANGE_BREAK": self.change_break_timer,
         }
 
-        func = functions.get(message)
+        func = functions.get(message[0])
 
-        if func is None:
+        if len(message) == 2:
+            return await func(writer, int(message[1]))
+        elif len(message) == 1:
+            return await func(writer)
+        else:
             return await self.send_error(writer)
-        return await func(writer)
 
     async def start_timer(self, writer):
         if self.timer.start():
@@ -55,6 +61,14 @@ class PomodoroDeamon:
 
     async def skip_timer(self, writer):
         self.timer.skip_phase()
+        await self.send_message(writer)
+
+    async def change_pomo_timer(self, writer, duration: int):
+        self.timer.set_pomodoro_time(duration)
+        await self.send_message(writer)
+
+    async def change_break_timer(self, writer, duration: int):
+        self.timer.set_break_time(duration)
         await self.send_message(writer)
 
     async def send_message(self, writer: asyncio.StreamWriter, msg="ok"):
