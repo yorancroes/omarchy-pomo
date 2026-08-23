@@ -21,7 +21,10 @@ class PomodoroDeamon:
 
     async def tick_loop(self):
         while True:
+            old_phase = self.timer.phase
             self.timer.advance_phase()
+            if self.timer.phase != old_phase:
+                await self.send_notification("Pomodoro", f"{old_phase.name} done!")
             self.write_json()
             await asyncio.sleep(1)
 
@@ -84,6 +87,15 @@ class PomodoroDeamon:
     async def close_writer(self, writer: asyncio.StreamWriter):
         writer.close()
         await writer.wait_closed()
+
+    async def send_notification(self, title: str, body: str):
+        await asyncio.create_subprocess_exec(
+            "notify-send",
+            title,
+            body,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
 
     def write_json(self):
         txt = self.timer.dump()
