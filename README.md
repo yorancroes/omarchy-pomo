@@ -2,7 +2,7 @@
 
 A Pomodoro timer for [Omarchy](https://omarchy.org/) — a background daemon, a Waybar module, and a Textual TUI, all sharing state over a local Unix socket.
 
-<!-- ![Waybar module and TUI screenshot](docs/screenshot.png) -->
+![TUI screenshot](docs/screenshot.png)
 
 ## Features
 
